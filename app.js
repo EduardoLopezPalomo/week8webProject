@@ -32,7 +32,7 @@ app.post('/api/user/register', async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.find({ email });
     if (existingUser) {
       return res.status(403).json({ error: 'Email is already in use' });
     }
