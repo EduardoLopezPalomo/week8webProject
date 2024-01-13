@@ -11,8 +11,8 @@ db.once('open', () => console.log('Connected to MongoDB'));
 app.use(express.json());
 
 const userSchema = new mongoose.Schema({
-  email: { type: String, unique: true, required: true },
-  password: { type: String, required: true }
+  email: String,
+  password: String
 });
 
 userSchema.pre('save', function(next) {
