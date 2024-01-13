@@ -2,6 +2,9 @@ const express = require('express');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const passport = require('passport');
+const JwtStrategy = require('passport-jwt').Strategy;
+const ExtractJwt = require('passport-jwt').ExtractJwt;
 
 const app = express();
 const PORT = 3000;
@@ -72,6 +75,28 @@ app.post('/api/user/login', async (req, res) => {
       console.error(error);
       res.status(500).json({ error: 'Internal Server Error' });
     }
+  });
+
+  const jwtOptions = {
+    jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+    secretOrKey: process.env.SECRET
+  };
+  
+  passport.use(new JwtStrategy(jwtOptions, async (payload, done) => {
+    try {
+      const user = await User.findOne({ email: payload.email });
+      if (user) {
+        return done(null, user);
+      } else {
+        return done(null, false);
+      }
+    } catch (error) {
+      return done(error, false);
+    }
+  }));
+
+  app.get('/api/private', passport.authenticate('jwt', { session: false }), (req, res) => {
+    res.json({ email: req.user.email });
   });
 
 app.listen(PORT, () => console.log(`Server is running on http://localhost:${PORT}`));
