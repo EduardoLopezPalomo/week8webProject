@@ -1,9 +1,13 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+
 const app = express();
 const PORT = 3000;
-const mongoDB = "mongodb://127.0.0.1:27017/testdb"; 
+const mongoDB = "mongodb://127.0.0.1:27017/testdb";
+process.env.SECRET = 'secret-key';
+
 
 mongoose.connect(mongoDB);
 const db = mongoose.connection;
@@ -46,5 +50,28 @@ app.post('/api/user/register', async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
+app.post('/api/user/login', async (req, res) => {
+    try {
+      const { email, password } = req.body;
+  
+      const user = await User.findOne({ email });
+      if (!user) {
+        return res.status(401).json({ error: 'Invalid email or password' });
+      }
+  
+      const passwordMatch = await bcrypt.compare(password, user.password);
+      if (!passwordMatch) {
+        return res.status(401).json({ error: 'Invalid email or password' });
+      }
+  
+      const token = jwt.sign({ email: user.email }, process.env.SECRET, { expiresIn: '1h' });
+  
+      res.status(200).json({ token });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
+  });
 
 app.listen(PORT, () => console.log(`Server is running on http://localhost:${PORT}`));
