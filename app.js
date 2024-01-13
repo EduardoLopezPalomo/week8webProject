@@ -2,12 +2,12 @@ const express = require('express');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const app = express();
-const PORT = 3000; 
+const PORT = 3000;
+const mongoDB = "mongodb://127.0.0.1:27017/testdb"; 
 
-mongoose.connect('mongodb://localhost:27017/testdb');
+mongoose.connect(mongoDB);
 const db = mongoose.connection;
-db.on('error', console.error.bind(console, 'MongoDB connection error:'));
-db.once('open', () => console.log('Connected to MongoDB'));
+db.on("error", console.error.bind(console, "MongoDB connection error"));
 app.use(express.json());
 
 const userSchema = new mongoose.Schema({
@@ -32,7 +32,7 @@ app.post('/api/user/register', async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const existingUser = await User.find({ email });
+    const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(403).json({ error: 'Email is already in use' });
     }
