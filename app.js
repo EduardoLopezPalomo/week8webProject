@@ -48,7 +48,7 @@ app.post('/api/user/register',[body('email').isEmail(), body('password').isStron
   
         const existingUser = await User.findOne({ email });
         if (existingUser) {
-          return res.status(400).json({ error: 'Email is already in use' });
+          return res.status(403).json({ error: 'Email is already in use' });
         }
   
         const newUser = new User({ email, password });
