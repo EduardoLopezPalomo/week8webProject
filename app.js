@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const passport = require('passport');
 const JwtStrategy = require('passport-jwt').Strategy;
 const ExtractJwt = require('passport-jwt').ExtractJwt;
+const { body, validationResult } = require('express-validator');
 
 const app = express();
 const PORT = 3000;
@@ -35,24 +36,31 @@ userSchema.pre('save', function(next) {
 
 const User = mongoose.model('User', userSchema);
 
-app.post('/api/user/register', async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(403).json({ error: 'Email is already in use' });
+app.post('/api/user/register',[body('email').isEmail(), body('password').isStrongPassword({ minLength: 8, minLowercase: 1, minUppercase: 1, minNumbers: 1, minSymbols: 1 })], async (req, res) => {
+    
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ error: 'Invalid registration data', details: errors.array() });
     }
-
-    const newUser = new User({ email, password });
-    await newUser.save();
-
-    res.status(200).json({ message: 'Registration successful' });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
+  
+    try {
+        const { email, password } = req.body;
+  
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+          return res.status(400).json({ error: 'Email is already in use' });
+        }
+  
+        const newUser = new User({ email, password });
+        await newUser.save();
+  
+        res.status(200).json({ message: 'Registration successful' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Internal Server Error' });
+      }
+    }
+  );
 
 app.post('/api/user/login', async (req, res) => {
     try {
