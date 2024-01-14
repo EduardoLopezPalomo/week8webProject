@@ -17,11 +17,19 @@ mongoose.connect(mongoDB);
 const db = mongoose.connection;
 db.on("error", console.error.bind(console, "MongoDB connection error"));
 app.use(express.json());
+app.use(passport.initialize());
 
 const userSchema = new mongoose.Schema({
   email: String,
   password: String
 });
+
+const todoSchema = new mongoose.Schema({
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    items: [{ type: String }]
+});
+  
+const Todo = mongoose.model('Todo', todoSchema);
 
 userSchema.pre('save', function(next) {
   const user = this;
@@ -103,8 +111,35 @@ app.post('/api/user/login', async (req, res) => {
     }
   }));
 
-  app.get('/api/private', passport.authenticate('jwt', { session: false }), (req, res) => {
+app.get('/api/private', passport.authenticate('jwt', { session: false }), (req, res) => {
     res.json({ email: req.user.email });
-  });
+});
+
+app.post('/api/todos', passport.authenticate('jwt', { session: false }), [body('items').isArray()], async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ error: 'Invalid todo data', details: errors.array() });
+    }
+  
+    try {
+        const { items } = req.body;
+        const userId = req.user._id;
+  
+        let existingTodo = await Todo.findOne({ user: userId });
+  
+        if (!existingTodo) {
+          existingTodo = new Todo({ user: userId, items });
+        } else {
+          existingTodo.items = existingTodo.items.concat(items);
+        }
+  
+        await existingTodo.save();
+  
+        res.status(200).json({ message: 'Todo list updated successfully' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
 
 app.listen(PORT, () => console.log(`Server is running on http://localhost:${PORT}`));
